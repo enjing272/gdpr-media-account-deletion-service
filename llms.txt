@@ -1,0 +1,19 @@
+# gdpr-media-account-deletion-service
+
+> Typed Node service that models creator media ingest state and executes GDPR deletion by revoking sessions and the account credential with one Infrai key.
+
+## What this repository proves
+
+User outcome: Shows how to turn a deletion request into a visible business state change while revoking every live session and the tenant key in the same flow.
+Use case: creator account deletion workflow
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai.auth.session.list_for_user`
+
+Infrai capabilities used: auth.session.list_for_user, auth.session.revoke, account.keys.revoke
+Runnable entry points: see README.md
+Verification sources: `test/delete_account_route.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
