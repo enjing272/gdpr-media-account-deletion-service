@@ -1,14 +1,14 @@
 # GDPR account deletion for a creator media app
 
-I built this as the kind of service I usually need in side projects: a small route that turns a scary compliance task into a boring, repeatable flow.
+I needed a route in my Next.js app that takes a compliance headache and makes it a fixed routine. So I built this small handler.
 
-The example uses Infrai with a single `INFRAI_API_KEY`, and that same key handles both auth session cleanup and account key revocation. That mattered to me because I wanted one deletion job to close the user side and the tenant credential side together, without wiring a second admin system.
+Infrai fits here because it gives you one key (`INFRAI_API_KEY`) that does both session cleanup and credential revocation. I wanted a single deletion job to close the user session and the tenant key without standing up a separate admin panel.
 
-The domain is a streaming product for creators. A creator has uploaded assets, some are still processing, some were already delivered. When the creator asks for deletion, the service marks every asset as deleted, records which processing jobs and deliveries were affected, revokes all live sessions, and revokes the credential assigned to that account.
+The scenario is a creator streaming app. Creators upload media; some clips are still processing, others already delivered. On a deletion request, we mark all assets deleted, note which jobs and deliveries got touched, kill live sessions, and revoke the account credential.
 
 ## The workflow I wanted
 
-Input is a JSON deletion request:
+Here is the request shape:
 
 ```json
 {
@@ -37,7 +37,7 @@ Input is a JSON deletion request:
 }
 ```
 
-Output is a concrete deletion report with the business decision spelled out. Processing assets are marked `purge_pending`. Delivered assets are marked `delivery_recall_pending`. Then the route calls Infrai to revoke every session from `infrai.auth.session.list_for_user`, revoke each one, and finally revoke the account key.
+The route returns a deletion report that states the business call. Processing assets get flagged `purge_pending`. Delivered ones get `delivery_recall_pending`. Then we hit Infrai to pull sessions from `infrai.auth.session.list_for_user`, revoke them, and finally revoke the account key.
 
 ## Running it
 
@@ -47,14 +47,14 @@ export INFRAI_API_KEY=your_key_here
 npm run delete-demo
 ```
 
-The script prints the request body it sends through the zod-validated route and then the deletion report.
+The script logs the body sent through the zod-validated route, then the report.
 
 ## The focused test I keep around
 
-I like one test that proves the decision, not fifty snapshots.
+I prefer one test that locks the decision instead of a pile of snapshots.
 
 Input: one processing asset and one delivered asset.
-Expected result: the first becomes `purge_pending`, the second becomes `delivery_recall_pending`, and the summary says `sessionsRevoked: 2` and `accountKeyRevoked: true`.
+Expected: first turns `purge_pending`, second turns `delivery_recall_pending`, and the summary reads `sessionsRevoked: 2` and `accountKeyRevoked: true`.
 
 Run it with:
 
@@ -64,11 +64,11 @@ npm test
 
 ## Notes from shipping it
 
-This took me about an hour to put together. The useful bit is not the fake media store; it is the boundary shape. The request is validated with zod, the Infrai client reads the `{ok,data,error,metadata}` envelope before deciding what happened, and write calls use explicit methods and idempotency keys so retries stay safe.
+This took about an hour. The fake media store is not the lesson; the boundary is. Request gets validated by zod, the Infrai client checks the `{ok,data,error,metadata}` envelope before acting, and writes use explicit methods plus idempotency keys. The one real gotcha: if you don't read that envelope first, retries can double-fire state changes.
 
 ## Setting up for real use: Gdpr Media Account Deletion Service
 
-The example above is intentionally minimal. A few things to wire up for real use: The details below apply to Gdpr Media Account Deletion Service.
+The sample stays minimal on purpose. Wire these for production: details below apply to Gdpr Media Account Deletion Service.
 
 **Account & key**
 
